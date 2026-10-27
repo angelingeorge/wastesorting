@@ -8,22 +8,22 @@ public class RatEndMessage : MonoBehaviour
     public GameObject ratPanel;
     public TMP_Text ratMessage;
     public float letterDelay = 0.04f;
+    public float messageEndDelay = 2f;
 
     private Coroutine typingCoroutine;
 
     void Start()
     {
-        if (ratPanel != null)
-            ratPanel.SetActive(false);
+        ShowMessage(
+            "Welcome! Collect all the waste and put each item in the correct bin."
+        );
     }
 
     public void ShowMessage(string message)
     {
         if (ratPanel == null || ratMessage == null)
         {
-            Debug.LogError(
-                "RatPanel or RatMessage is not assigned!"
-            );
+            Debug.LogError("RatPanel or RatMessage is not assigned!");
             return;
         }
 
@@ -45,6 +45,12 @@ public class RatEndMessage : MonoBehaviour
             ratMessage.text += letter;
             yield return new WaitForSeconds(letterDelay);
         }
+
+        // Wait until the player can read the full message
+        yield return new WaitForSeconds(messageEndDelay);
+
+        // Hide the panel after the message finishes
+        ratPanel.SetActive(false);
 
         typingCoroutine = null;
     }

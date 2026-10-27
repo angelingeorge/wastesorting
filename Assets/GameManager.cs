@@ -3,34 +3,41 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public WasteInteraction wasteInteraction;
-    public RatEndMessage ratEndMessage;
+    public GameObject successText;
 
-    private WasteItem[] allWaste;
+    private Transform wasteParent;
     private bool gameCompleted = false;
 
     void Start()
     {
-        allWaste = FindObjectsByType<WasteItem>(
-            FindObjectsInactive.Include,
-            FindObjectsSortMode.None
-        );
+        GameObject wasteObject = GameObject.Find("waste");
 
-        if (ratEndMessage != null && ratEndMessage.ratPanel != null)
-            ratEndMessage.ratPanel.SetActive(false);
+        if (wasteObject != null)
+        {
+            wasteParent = wasteObject.transform;
+        }
+        else
+        {
+            Debug.LogError("waste parent object not found!");
+        }
 
-        if (allWaste.Length == 0)
-            Debug.LogWarning("No WasteItem objects found!");
+        if (successText != null)
+            successText.SetActive(false);
+        else
+            Debug.LogError("SuccessText is not assigned!");
+
+        Debug.Log("GameManager started");
     }
 
     void Update()
     {
-        if (gameCompleted || allWaste == null)
+        if (gameCompleted || wasteParent == null)
             return;
 
-        foreach (WasteItem waste in allWaste)
+        // Check all child waste objects
+        foreach (Transform child in wasteParent)
         {
-            if (waste != null && waste.gameObject.activeInHierarchy)
+            if (child.gameObject.activeInHierarchy)
                 return;
         }
 
@@ -41,22 +48,9 @@ public class GameManager : MonoBehaviour
     {
         gameCompleted = true;
 
-        Debug.Log("ALL WASTE SORTED!");
+        Debug.Log("SUCCESS! ALL WASTE COLLECTED!");
 
-        if (wasteInteraction != null)
-            wasteInteraction.StopInteraction();
-
-        if (ratEndMessage != null)
-        {
-            ratEndMessage.ShowMessage(
-                "Amazing! You sorted all the waste! Great job!"
-            );
-        }
-        else
-        {
-            Debug.LogError(
-                "RatEndMessage is not assigned in GameManager!"
-            );
-        }
+        if (successText != null)
+            successText.SetActive(true);
     }
 }

@@ -1,59 +1,89 @@
+
 using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
     public float moveSpeed = 5f;
+    public float acceleration = 15f;
+    public float deceleration = 20f;
     public float jumpHeight = 1.5f;
     public float gravity = -9.81f;
 
     [Header("Mouse Look")]
     public float mouseSensitivity = 2f;
+    public float lookSmoothness = 12f;
     public Transform playerCamera;
 
     private CharacterController controller;
     private float verticalVelocity;
-    private float cameraRotationX = 0f;
+    private float cameraRotationX;
+
+    private Vector3 currentHorizontalVelocity;
+    private float targetCameraRotationX;
+    private float currentMouseX;
 
     void Start()
     {
         controller = GetComponent<CharacterController>();
 
+        if (playerCamera != null)
+        {
+            cameraRotationX = playerCamera.localEulerAngles.x;
+
+            if (cameraRotationX > 180f)
+                cameraRotationX -= 360f;
+
+            targetCameraRotationX = cameraRotationX;
+        }
+
         Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = true;
+        Cursor.visible = false;
     }
 
     void Update()
     {
+        if (controller == null || playerCamera == null)
+            return;
+
         MovePlayer();
         LookAround();
     }
 
     void MovePlayer()
+{
+    float x = Input.GetAxisRaw("Horizontal");
+    float z = Input.GetAxisRaw("Vertical");
+
+    Vector3 input = new Vector3(x, 0f, z).normalized;
+    Vector3 targetVelocity =
+        (transform.right * input.x + transform.forward * input.z) * moveSpeed;
+
+    float smooth = (input.magnitude > 0) ? acceleration : deceleration;
+
+    currentHorizontalVelocity = Vector3.Lerp(
+        currentHorizontalVelocity,
+        targetVelocity,
+        smooth * Time.deltaTime
+    );
+
+    // Ground stick
+    if (controller.isGrounded)
     {
-        float x = Input.GetAxis("Horizontal");
-        float z = Input.GetAxis("Vertical");
+        if (verticalVelocity < 0)
+            verticalVelocity = -3f;
 
-        Vector3 move = transform.right * x + transform.forward * z;
-
-        controller.Move(move * moveSpeed * Time.deltaTime);
-
-        if (controller.isGrounded)
-        {
-            verticalVelocity = -2f;
-
-            if (Input.GetButtonDown("Jump"))
-            {
-                verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
-            }
-        }
-
-        verticalVelocity += gravity * Time.deltaTime;
-
-        Vector3 gravityMove = new Vector3(0, verticalVelocity, 0);
-
-        controller.Move(gravityMove * Time.deltaTime);
+        if (Input.GetButtonDown("Jump"))
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
     }
+
+    verticalVelocity += gravity * Time.deltaTime;
+
+    Vector3 move = currentHorizontalVelocity;
+    move.y = verticalVelocity;
+
+    controller.Move(move * Time.deltaTime);
+}
 
     void LookAround()
     {
@@ -62,9 +92,16 @@ public class PlayerController : MonoBehaviour
 
         transform.Rotate(Vector3.up * mouseX);
 
-        cameraRotationX -= mouseY;
-        cameraRotationX = Mathf.Clamp(cameraRotationX, -90f, 90f);
+        targetCameraRotationX -= mouseY;
+        targetCameraRotationX = Mathf.Clamp(targetCameraRotationX, -90f, 90f);
 
-        playerCamera.localRotation = Quaternion.Euler(cameraRotationX, 0f, 0f);
+        cameraRotationX = Mathf.Lerp(
+            cameraRotationX,
+            targetCameraRotationX,
+            1f - Mathf.Exp(-lookSmoothness * Time.deltaTime)
+        );
+
+        playerCamera.localRotation =
+            Quaternion.Euler(cameraRotationX, 0f, 0f);
     }
 }

@@ -4,17 +4,14 @@ using TMPro;
 
 public class WasteInteraction : MonoBehaviour
 {
-    [Header("Player")]
     public Camera playerCamera;
     public float interactionDistance = 10f;
 
-    [Header("Waste UI")]
     public GameObject wastePanel;
     public TMP_Text wasteNameText;
     public TMP_Text resultText;
 
     private WasteItem selectedWaste;
-    private bool gameEnded = false;
 
     void Start()
     {
@@ -30,9 +27,6 @@ public class WasteInteraction : MonoBehaviour
 
     void Update()
     {
-        if (gameEnded)
-            return;
-
         if (wastePanel != null && wastePanel.activeSelf)
             return;
 
@@ -44,7 +38,7 @@ public class WasteInteraction : MonoBehaviour
     {
         if (playerCamera == null)
         {
-            Debug.LogError("Player Camera is not assigned!");
+            Debug.LogError("Assign Player Camera in Inspector!");
             return;
         }
 
@@ -54,63 +48,52 @@ public class WasteInteraction : MonoBehaviour
 
         if (!Physics.Raycast(ray, out RaycastHit hit, interactionDistance))
         {
-            Debug.Log("Waste-il aim cheyyuka.");
+            Debug.Log("Nothing hit. Aim at the waste.");
             return;
         }
 
-        WasteItem waste =
-            hit.collider.GetComponentInParent<WasteItem>();
+        WasteItem waste = hit.collider.GetComponentInParent<WasteItem>();
 
         if (waste == null)
         {
-            Debug.LogWarning(
-                "Hit object-il WasteItem component kandilla!"
-            );
+            Debug.Log("Add WasteItem to this waste object's root.");
             return;
         }
 
         selectedWaste = waste;
 
+        Debug.Log("WASTE SELECTED: " + selectedWaste.wasteName);
+
         if (wasteNameText != null)
-            wasteNameText.text = "Recycle " + waste.wasteName;
+            wasteNameText.text = "Waste: " + selectedWaste.wasteName;
 
         if (resultText != null)
-        {
             resultText.text = "";
-            resultText.color = Color.white;
-        }
 
         if (wastePanel != null)
             wastePanel.SetActive(true);
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-
-        Debug.Log("Waste selected: " + waste.wasteName);
     }
 
     public void SelectContainer(WasteType selectedType)
     {
-        if (gameEnded)
-            return;
-
         if (selectedWaste == null)
         {
-            Debug.LogWarning("No waste selected!");
+            Debug.LogError("No waste selected. Check Button OnClick connection.");
             return;
         }
 
         if (selectedWaste.correctType == selectedType)
         {
-            GameObject sortedWaste = selectedWaste.gameObject;
+            Debug.Log("CORRECT! Hiding " + selectedWaste.wasteName);
 
-            Debug.Log("Correct! Sorted: " + selectedWaste.wasteName);
+            // Hide the complete waste object and its child model
+            GameObject wasteObject = selectedWaste.gameObject;
+            wasteObject.SetActive(false);
 
-            // Clear selection before hiding the waste
             selectedWaste = null;
-
-            // Correct bin: waste disappear aakum
-            sortedWaste.SetActive(false);
 
             if (wastePanel != null)
                 wastePanel.SetActive(false);
@@ -123,13 +106,12 @@ public class WasteInteraction : MonoBehaviour
         }
         else
         {
-            Debug.Log("Wrong waste category!");
+            Debug.Log("WRONG CATEGORY!");
 
             if (resultText != null)
             {
-                resultText.gameObject.SetActive(true);
+                resultText.text = "WRONG!";
                 resultText.color = Color.red;
-                resultText.text = "WRONG! Try again.";
             }
         }
     }
@@ -147,17 +129,5 @@ public class WasteInteraction : MonoBehaviour
     public void SelectEWaste()
     {
         SelectContainer(WasteType.EWaste);
-    }
-
-    public void StopInteraction()
-    {
-        gameEnded = true;
-        selectedWaste = null;
-
-        if (wastePanel != null)
-            wastePanel.SetActive(false);
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
     }
 }
